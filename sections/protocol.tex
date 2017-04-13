@@ -1,0 +1,45 @@
+\section{UPnP Protocols}
+
+The UPnP architecture describes six levels of protocols including addressing, discovery, description, control, eventing and presentation. While control deals with how devices can invoke other devices using SOAP, that layer will not be considered further.
+
+\subsection{Addressing}
+
+The first level of the UPnP protocol deals with establishing a presence on the network. This involves obtaining an IP address. UPnP devices implement Automatic Private IP Addressing (AutoIP) to obtain or generate an IP and address themselves. Firstly, the device will attempt to obtain an IP address via Dynamic Host Configuration Protocol (DHCP)\cite{UPnPWindowsXP}. This protocol uses UDP on ports 67 and 68 for the server and client respectively.
+
+Initially, the device will broadcast a Discover UDP message to the whole network using the broadcast address 255.255.255.255 as the destination. The message will include the source IP address of 0.0.0.0 as it does not yet have one, and will be sent from UDP port 68 to port 67, ensuring that a server is the only one to receive the message.
+
+\begin{center}
+\begin{table}[h!]
+\begin{tabular}{|c|c|c|c|c|}
+	\hline 
+	\textbf{Source}&\textbf{Dest}&\textbf{Source}&\textbf{Dest}&\textbf{Packet} \\
+	\textbf{MAC addr}&\textbf{MAC addr}&\textbf{IP addr}&\textbf{IP addr}&\textbf{Description} \\
+	\hline
+	Client&Broadcast&0.0.0.0&255.255.255.255&DHCP Discover \\
+	\hline
+   DHCPsrvr&Broadcast&DHCPsrvr&255.255.255.255&DHCP Offer \\
+   \hline
+   Client&Broadcast&0.0.0.0&255.255.255.255&DHCP Request \\
+   \hline
+   DHCPsrvr&Broadcast&DHCPsrvr&255.255.255.255&DHCP ACK \\
+   \hline
+\end{tabular}
+
+\caption{Client-server DHCP conversation summary\cite{microsoft-dhcp}} 
+\label{table:1}
+\end{table}
+\end{center}
+
+Following receipt of the discovery message, the DHCP server will respond by broadcasting an offer which will state the offered IP address and the time duration that it will be valid for. The source and destination ports for the UDP message will be flipped, such that the source is the server port 67 and destination 68. This needs to be broadcast as the client still does not have an IP address at this time and cannot otherwise be located, but clients with an established IP address will ignore the message.
+
+The client will then broadcast a request message which will indicate the specific IP and duration of the offer that it is accepting. The final response from the server is to acknowledge the accepted offer, and upon client receipt of the ACK, the client will start using the confirmed IP address.
+
+Should DHCP fail to obtain an IP address, the device will fail over to generate an IP and address itself.
+
+\subsection{Discovery}
+
+\subsection{Description}
+
+\subsection{Eventing}
+
+\subsection{Presentation}

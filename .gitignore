@@ -1,0 +1,9 @@
+*.gz
+*.toc
+*.swp
+*.aux
+*.bmp
+*.bbl
+*.blg
+.DS_Store
+*/.DS_Store
