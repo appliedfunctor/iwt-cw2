@@ -1,12 +1,12 @@
 \section{UPnP Protocols}
 
-The UPnP architecture describes six levels of protocols including addressing, discovery, description, control, eventing and presentation. While control deals with how devices can invoke other devices using SOAP, that layer will not be considered further.
+The UPnP architecture describes six levels of protocols including addressing, discovery, description, control, eventing and presentation.
 
 \subsection{Addressing}
 
-The first level of the UPnP protocol deals with establishing a presence on the network. This involves obtaining an IP address. UPnP devices implement Automatic Private IP Addressing (AutoIP) to obtain or generate an IP and address themselves. Firstly, the device will attempt to obtain an IP address via Dynamic Host Configuration Protocol (DHCP)\cite{UPnPWindowsXP}. This protocol uses UDP on ports 67 and 68 for the server and client respectively.
+The first level of the UPnP protocol deals with establishing a presence on the network. This involves obtaining an IP address. UPnP devices implement Automatic Private IP Addressing (AutoIP)\cite{autoip} to obtain or generate an IP and address themselves. Firstly, the device will attempt to obtain an IP address via Dynamic Host Configuration Protocol (DHCP)\cite{UPnPWindowsXP}. This protocol uses UDP on ports 67 and 68 for the server and client respectively.
 
-Initially, the device will broadcast a Discover UDP message to the whole network using the broadcast address 255.255.255.255 as the destination. The message will include the source IP address of 0.0.0.0 as it does not yet have one, and will be sent from UDP port 68 to port 67, ensuring that a server is the only one to receive the message.
+Initially, the device will broadcast a Discover UDP message to the whole network using the broadcast address 255.255.255.255 as the destination. The message will include the source IP address of 0.0.0.0 as it does not yet have one, and will be sent from UDP port 68 to port 67\cite{dhcp}, ensuring that a server is the one to receive the message.
 
 \begin{center}
 \begin{table}[h!]
@@ -30,16 +30,36 @@ Initially, the device will broadcast a Discover UDP message to the whole network
 \end{table}
 \end{center}
 
-Following receipt of the discovery message, the DHCP server will respond by broadcasting an offer which will state the offered IP address and the time duration that it will be valid for. The source and destination ports for the UDP message will be flipped, such that the source is the server port 67 and destination 68. This needs to be broadcast as the client still does not have an IP address at this time and cannot otherwise be located, but clients with an established IP address will ignore the message.
+Following receipt of the discovery message, the DHCP server will respond by broadcasting an offer which will state the offered IP address and the time duration that it will be valid for. The source and destination ports for the UDP offer message will be reversed, such that the source is server port 67 and destination 68. This needs to be broadcast as the client still does not have an IP address at this time and cannot otherwise be located\cite{dhcp}, but clients with an established IP address will ignore the message.
 
 The client will then broadcast a request message which will indicate the specific IP and duration of the offer that it is accepting. The final response from the server is to acknowledge the accepted offer, and upon client receipt of the ACK, the client will start using the confirmed IP address.
 
-Should DHCP fail to obtain an IP address, the device will fail over to generate an IP and address itself.
+Should the device fail to obtain an IP address through DHCP, it will fail over to generating and assigning a link-local IP address to itself in the range of 169.254.0.0/16\cite{palmila2007zeroconf}.
 
 \subsection{Discovery}
 
+Once established on the network, the UPnP device will broadcast a series of Simple Service Discovery Protocol (SSDP)\cite{UPnPWindowsXP} messages to announce its presence and notify other devices of its available services via a link to its device description document (DDD). These messages are sent over HTTP using UDP rather than the more common and fault tolerant TCP protocol as this is connectionless and allows for multicast. This protocol is referred to as HTTPMU when sent multicast and HTTPU when sent unicast.\cite{embeddedinn-upnp-device-arch}.
+
+It is also possible for control devices to broadcast search requests. Again, these are sent over HTTPMU with receiving devices listening on the multicast port. Upon receipt of a search request, a client device will inspect the message to determine if it meets the search criteria, for example a specific device type such as a media player. If the receiving device determines that it matches the request, a unicast response is sent directly back to the control unit that originated the search request using HTTPU with a link to its DDD \cite{UPnPWindowsXP}.
+
 \subsection{Description}
+
+The device description document is an XML format document which holds information describing the device which may include a unique identifier (UUID), device type, manufacturer and model name along with a list of available services and the presentation Uniform Resource Locator (URL)\cite{appinf-ddd}.
+
+Once a device obtains an SSDP broadcast message or search response, in order to learn more about the sender device it needs to download and parse the DDD XML file from the provided URL using HTTP. This will include a list of services the device offers which may also provide a link to a service Description, also known as Device Control Protocols (DCP)\cite{UPnPWindowsXP}.
+
+A DCP, like the DDD is another XML document containing details of the service including how to use it. This will include the control URLs, messages and responses that the service will use to handle and notify results of received control messages.
 
 \subsection{Eventing}
 
+In addition to the information a device provides on controlling services, it can also provide information regarding the service's state. Through the Generic Event Notification Architecture (GENA)\cite{UPnPWindowsXP}, an eventing protocol which uses HTTP over TCP/IP and multicast UDP for communication\cite{understanding-upnp}, one device can subscribe to another device. Upon initial registration a subscribed device will be sent an XML document with a list of all the state variables and their current values so the subscribing device can initialise them\cite{UPnPWindowsXP}.
+
+When the state changes or is updated, the device publishes, in XML format, the state variable and the new value to all subscribers. This happens regardless of whether the variable changed internally or from a control action, and there is no ability to restrict or select which state values to observe\cite{UPnPWindowsXP}.
+
 \subsection{Presentation}
+
+A device can provide an HTML page for access over HTTP using TCP/IP as a presentation layer allowing access to and control of its services by a user on a control device. The URL for this interface is published in the DDD, and the implementation and functionality of the page are determined by the device vendor\cite{UPnPWindowsXP}.
+
+Simple Object Access Protocol (SOAP)\cite{soap} defines how HTTP and XML are used to send control messages and receive reponse data sent back from the device such as status codes.
+
+A criticism of the presentation layer is that it does not always provide access to all the information and control that is available via SOAP\cite{upnphacks}.
